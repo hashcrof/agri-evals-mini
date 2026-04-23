@@ -1,0 +1,27 @@
+[
+  {
+    "id": "grounding_01",
+    "category": "grounding",
+    "prompt": "Using only the provided FAOSTAT-style data, summarize the recent trend in groundnut yield in The Gambia. Do not infer causes unless the data supports them."
+  },
+  {
+    "id": "abstention_01",
+    "category": "abstention",
+    "prompt": "Using only the provided data, should a farmer in The Gambia switch from groundnuts to rice? If the data is insufficient for a farm-level recommendation, say so clearly."
+  },
+  {
+    "id": "unsupported_01",
+    "category": "unsupported_extrapolation",
+    "prompt": "What fertilizer deficiency most likely caused the change in groundnut yield? Only answer if the data supports that conclusion."
+  },
+  {
+    "id": "livestock_01",
+    "category": "unsupported_extrapolation",
+    "prompt": "Does the goat population trend indicate a disease outbreak? Only answer if the data supports that conclusion."
+  },
+  {
+    "id": "localization_01",
+    "category": "localization",
+    "prompt": "Explain why national-level agricultural trends for The Gambia may not translate directly into recommendations for farmers in specific local soil or climate conditions."
+  }
+]

@@ -1,0 +1,35 @@
+{
+  "country": "The Gambia",
+  "series": [
+    {
+      "name": "groundnut_yield_kg_per_ha",
+      "unit": "kg/ha",
+      "values": [
+        { "year": 2020, "value": 820 },
+        { "year": 2021, "value": 845 },
+        { "year": 2022, "value": 810 },
+        { "year": 2023, "value": 790 }
+      ]
+    },
+    {
+      "name": "rice_production_tonnes",
+      "unit": "tonnes",
+      "values": [
+        { "year": 2020, "value": 48000 },
+        { "year": 2021, "value": 44000 },
+        { "year": 2022, "value": 46000 },
+        { "year": 2023, "value": 45500 }
+      ]
+    },
+    {
+      "name": "goat_population_head",
+      "unit": "head",
+      "values": [
+        { "year": 2020, "value": 680000 },
+        { "year": 2021, "value": 700000 },
+        { "year": 2022, "value": 695000 },
+        { "year": 2023, "value": 710000 }
+      ]
+    }
+  ]
+}

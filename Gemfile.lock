@@ -1,0 +1,48 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    anthropic (1.35.0)
+      cgi
+      connection_pool
+    bigdecimal (4.1.2)
+    cgi (0.5.1)
+    connection_pool (3.0.2)
+    csv (3.3.5)
+    dotenv (3.2.0)
+    httparty (0.24.2)
+      csv
+      mini_mime (>= 1.0.0)
+      multi_xml (>= 0.5.2)
+    json (2.19.4)
+    mini_mime (1.1.5)
+    multi_xml (0.8.1)
+      bigdecimal (>= 3.1, < 5)
+
+PLATFORMS
+  arm64-darwin-24
+  ruby
+
+DEPENDENCIES
+  anthropic
+  csv
+  dotenv
+  httparty
+  json
+
+CHECKSUMS
+  anthropic (1.35.0) sha256=a99ff2cfc3109e17c747d6b8ce810754b9af797a07d6ecd4d21c6321798b7abf
+  bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
+  cgi (0.5.1) sha256=e93fcafc69b8a934fe1e6146121fa35430efa8b4a4047c4893764067036f18e9
+  connection_pool (3.0.2) sha256=33fff5ba71a12d2aa26cb72b1db8bba2a1a01823559fb01d29eb74c286e62e0a
+  csv (3.3.5) sha256=6e5134ac3383ef728b7f02725d9872934f523cb40b961479f69cf3afa6c8e73f
+  dotenv (3.2.0) sha256=e375b83121ea7ca4ce20f214740076129ab8514cd81378161f11c03853fe619d
+  httparty (0.24.2) sha256=8fca6a54aa0c4aa4303a0fd33e5e2156175d6a5334f714263b458abd7fda9c38
+  json (2.19.4) sha256=670a7d333fb3b18ca5b29cb255eb7bef099e40d88c02c80bd42a3f30fe5239ac
+  mini_mime (1.1.5) sha256=8681b7e2e4215f2a159f9400b5816d85e9d8c6c6b491e96a12797e798f8bccef
+  multi_xml (0.8.1) sha256=addba0290bac34e9088bfe73dc4878530297a82a7bbd66cb44dcd0a4b86edf5a
+
+RUBY VERSION
+  ruby 4.0.0
+
+BUNDLED WITH
+  4.0.3
