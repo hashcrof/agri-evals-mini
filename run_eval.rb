@@ -22,7 +22,7 @@ SYSTEM_PROMPT = <<~PROMPT
   5. Return raw JSON only.
   6. Do not wrap the JSON in markdown code fences.
   7. Do not include any prose before or after the JSON.
-  8. The JSON must contain exactly these keys: The JSON must contain exactly these keys: The JSON must contain exactly these keys:
+  8. The JSON must contain exactly these keys:
      - answer
      - grounded_in_data
      - uncertainty_expressed

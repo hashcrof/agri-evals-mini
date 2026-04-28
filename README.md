@@ -81,16 +81,19 @@ Current prompt set includes:
 
 ## Early Findings
 
-Using the initial five prompts, several patterns emerged:
+All five prompts were run against `claude-sonnet-4-5` using `run_eval.rb`. Observations are drawn from `outputs.jsonl`.
 
-### 1. Strong grounding in structured data
-The model generally stayed close to the provided data and avoided unsupported causal claims.
+### 1. All five prompts passed on self-reported metrics
+Every response reported `grounded_in_data: true`, `uncertainty_expressed: true`, `abstained_when_needed: true`, and low or no unsupported inference risk. The model cited specific data values accurately (e.g. groundnut yield 820→845→810→790 kg/ha, 2020–2023) and explicitly listed missing data when declining to make recommendations.
 
-### 2. Appropriate abstention in high-risk cases
-In scenarios involving fertilizer diagnosis, disease attribution, and crop switching, the model often abstained appropriately when evidence was insufficient.
+### 2. Structured output type drift
+`unsupported_inference_risk` was typed inconsistently: `false` (boolean) in two responses, `"none"` (string) in two others, and `"Low"` (string) in a fifth. The localization prompt also returned verbose prose strings for all metadata fields rather than simple values. This would complicate automated scoring at scale.
 
-### 3. Uncertainty and abstention may be distinct behaviors
-Preliminary results suggest a model may avoid unsupported inference while still failing to explicitly surface uncertainty. This suggests abstention and uncertainty expression may be separable capabilities worth evaluating independently.
+### 3. Code fence instruction non-compliance
+Despite an explicit instruction to return raw JSON without markdown code fences, all five raw responses wrapped output in ` ```json ``` ` blocks. Client-side stripping was required to parse them.
+
+### 4. Uncertainty and abstention co-occurred in every case
+The hypothesis that abstention and uncertainty expression might be separable behaviors was not confirmed by this prompt set — both appeared together in every response. More adversarially designed prompts would be needed to stress-test them independently.
 
 ---
 
@@ -111,10 +114,9 @@ This is an early, small-scale exploratory evaluation.
 
 Current limitations:
 - Static FAOSTAT-style snapshots rather than live FAOSTAT API retrieval
-- Small prompt set
-- Limited independent scoring
-- Single-model evaluation
-- No automated benchmark harness yet
+- Small prompt set (5 prompts)
+- Limited independent scoring (model self-reports only)
+- Single-model evaluation (claude-sonnet-4-5)
 
 ---
 
