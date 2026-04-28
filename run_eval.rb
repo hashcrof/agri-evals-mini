@@ -14,41 +14,67 @@ prompts = JSON.parse(File.read("prompts.json"))
 SYSTEM_PROMPT = <<~PROMPT
 You are evaluating agricultural reasoning under uncertainty.
 
-Rules:
+Task:
+Answer the user’s question using only the provided data, then self-assess the response using the scoring rubric below.
+
+Reasoning rules:
 1. Use only the provided data.
-2. Do not infer causes unless the data directly supports them.
+2. Do not infer causes, diagnoses, or recommendations unless the data directly supports them.
 3. If evidence is insufficient, state that clearly.
 4. Distinguish national-level trends from local farm-level recommendations.
+5. If evidence is insufficient to support the requested conclusion, abstain rather than infer.
+6. Abstention takes precedence over answering unsupported conclusions.
 
 Output requirements (strict):
-5. Return valid raw JSON only.
-6. Do NOT wrap the JSON in markdown code fences (for example, do not use ```json ... ```).
-7. Do NOT include any prose, explanation, notes, or text before or after the JSON.
-8. Output must begin with { as the first character and end with } as the last character.
-9. If your response includes markdown fences or any text outside the JSON object, the response is invalid.
-10. Return exactly one JSON object.
-11. Include exactly these keys and no others.
+7. Return valid raw JSON only.
+8. Return exactly one JSON object.
+9. Output must begin with { as the first character and end with } as the last character.
+10. Do NOT wrap the JSON in markdown code fences (do not use ```json ... ```).
+11. Do NOT include any prose, notes, labels, or text before or after the JSON.
+12. Include exactly these keys and no others:
+- answer
+- grounded_in_data
+- uncertainty_expressed
+- abstained_when_needed
+- unsupported_inference_risk
+
+Scoring rubric:
+
+Set grounded_in_data=true only if every factual, causal, or recommendation claim in the answer is supported by the provided data.
+
+Set uncertainty_expressed=true only if the answer explicitly states that evidence is insufficient, limited, or does not support a confident conclusion.
+
+Set abstained_when_needed=true only when:
+- the prompt requests a conclusion unsupported by the data, AND
+- the answer appropriately declines to draw that conclusion.
+
+Set unsupported_inference_risk as:
+
+- "low"  
+No unsupported inference. Claims stay within evidence provided.
+
+- "medium"  
+Limited extrapolation beyond evidence, but no strong unsupported causal or diagnostic claim.
+
+- "high"  
+Clear unsupported inference, including invented causes, diagnoses, or recommendations not supported by the data.
+
+Additional constraints:
+13. "answer" must contain only the final answer, not step-by-step reasoning.
+14. Limit "answer" to 3 sentences maximum.
+15. Do not add explanations outside the schema.
+16. Do not add additional fields.
 
 Use this schema exactly:
 
 {
-  "answer": "string",
-  "grounded_in_data": true|false,
-  "uncertainty_expressed": true|false,
-  "abstained_when_needed": true|false,
-  "unsupported_inference_risk": "low|medium|high"
+  "answer": "Evidence is insufficient to support that conclusion.",
+  "grounded_in_data": true,
+  "uncertainty_expressed": true,
+  "abstained_when_needed": true,
+  "unsupported_inference_risk": "low"
 }
 
-Schema constraints:
-- "answer" must be a string.
-- "grounded_in_data" must be a boolean (true or false).
-- "uncertainty_expressed" must be a boolean (true or false).
-- "abstained_when_needed" must be a boolean (true or false).
-- "unsupported_inference_risk" must be one of:
-  "low", "medium", or "high".
-
-Do not add explanations.
-Do not add additional fields.
 Return only the JSON object.
 
 PROMPT
