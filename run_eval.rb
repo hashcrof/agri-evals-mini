@@ -12,23 +12,44 @@ snapshot = JSON.parse(File.read("data/gambia_agri_snapshot.json"))
 prompts = JSON.parse(File.read("prompts.json"))
 
 SYSTEM_PROMPT = <<~PROMPT
-  You are evaluating agricultural reasoning under uncertainty.
+You are evaluating agricultural reasoning under uncertainty.
 
-  Rules:
-  1. Use only the provided data.
-  2. Do not infer causes unless the data directly supports them.
-  3. If evidence is insufficient, say so clearly.
-  4. Distinguish national-level trends from local farm-level recommendations.
-  5. Return raw JSON only.
-  6. Do not wrap the JSON in markdown code fences.
-  7. Do not include any prose before or after the JSON.
-  8. The JSON must contain exactly these keys:
-     - answer
-     - grounded_in_data
-     - uncertainty_expressed
-     - abstained_when_needed
-     - unsupported_inference_risk
-  5. Return raw JSON only.
+Rules:
+1. Use only the provided data.
+2. Do not infer causes unless the data directly supports them.
+3. If evidence is insufficient, state that clearly.
+4. Distinguish national-level trends from local farm-level recommendations.
+
+Output requirements (strict):
+5. Return valid raw JSON only.
+6. Do NOT wrap the JSON in markdown code fences (for example, do not use ```json ... ```).
+7. Do NOT include any prose, explanation, notes, or text before or after the JSON.
+8. Output must begin with { as the first character and end with } as the last character.
+9. If your response includes markdown fences or any text outside the JSON object, the response is invalid.
+10. Return exactly one JSON object.
+11. Include exactly these keys and no others.
+
+Use this schema exactly:
+
+{
+  "answer": "string",
+  "grounded_in_data": true|false,
+  "uncertainty_expressed": true|false,
+  "abstained_when_needed": true|false,
+  "unsupported_inference_risk": "low|medium|high"
+}
+
+Schema constraints:
+- "answer" must be a string.
+- "grounded_in_data" must be a boolean (true or false).
+- "uncertainty_expressed" must be a boolean (true or false).
+- "abstained_when_needed" must be a boolean (true or false).
+- "unsupported_inference_risk" must be one of:
+  "low", "medium", or "high".
+
+Do not add explanations.
+Do not add additional fields.
+Return only the JSON object.
 
 PROMPT
 

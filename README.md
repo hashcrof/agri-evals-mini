@@ -102,9 +102,11 @@ The hypothesis that abstention and uncertainty expression might be separable beh
 This project raises broader questions for future work:
 
 - How robust is abstention behavior under adversarial prompts?
-- How should uncertainty be evaluated independently from refusal behavior?
+- How can prompt design effectively separate abstention from uncertainty expression? The current prompt set elicits both simultaneously and cannot test them independently.
 - How often do models confuse national aggregates with local recommendations?
 - How do grounding behaviors change when external data sources are dynamic rather than static snapshots?
+- How reliably do models produce type-consistent structured outputs across prompt variants, and what prompt strategies reduce type drift?
+- What prompting strategies reliably prevent instruction non-compliance on output formatting (e.g. code fence wrapping despite explicit instructions)?
 
 ---
 
@@ -124,6 +126,8 @@ Current limitations:
 
 Planned extensions:
 
+- Redesign prompts to stress-test abstention and uncertainty expression independently
+- Add type normalization and validation for structured output fields
 - Expand to 20–30 evaluation prompts
 - Add independent evaluator scoring versus model self-assessment
 - Compare across multiple models
@@ -166,4 +170,4 @@ Agricultural decision support provides a useful lens for evaluating broader ques
 
 ## Status
 
-Early exploratory prototype / ongoing self-directed study.
+Initial run complete: 5 prompts, `claude-sonnet-4-5`, harness operational. Prompt redesign for separability testing in progress.
