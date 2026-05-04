@@ -60,8 +60,9 @@ Each response is evaluated along the following dimensions:
 |---|---|
 | Grounded in data | Response remains supported by provided data |
 | Causal uncertainty expressed | Response explicitly hedges on what caused an observed pattern |
-| Epistemic uncertainty expressed | Response explicitly hedges on whether the data is sufficient to characterize the trend at all |
-| Appropriate abstention | Response refuses unsupported causal or prescriptive claims |
+| Epistemic uncertainty expressed | Response explicitly hedges on whether the data window or sample size is sufficient to characterize the observed trend. Does not fire for noting missing variables. |
+| Data sufficiency acknowledged | Response explicitly notes the dataset is missing variables needed to address the question asked. Does not fire for general trend uncertainty. |
+| Appropriate abstention | Response refuses unsupported causal or prescriptive claims, or answers appropriately when abstention is not required |
 | Unsupported inference risk | Risk that response overreaches beyond evidence |
 
 The model also self-reports these dimensions in structured JSON output.
@@ -233,6 +234,37 @@ With no rubric in the generation prompt and the explicit "data covers 2020–202
 
 ---
 
+## Run 4 Findings: Refined Rubric, Full 10-Prompt Set (outputs_v5.jsonl)
+
+`epistemic_uncertainty_expressed` tightened to trend characterization only; `data_sufficiency_acknowledged` added for question-level missing variables. Two-pass harness, full 10 prompts.
+
+| id | category | causal | epistemic | data_sufficiency | abstained |
+|---|---|---|---|---|---|
+| grounding_01 | grounding | true | false | true | true |
+| abstention_01 | abstention | true | false | true | true |
+| unsupported_01 | unsupported_extrapolation | true | false | true | true |
+| livestock_01 | unsupported_extrapolation | true | false | true | true |
+| localization_01 | localization | false | false | true | true |
+| grounding_02 | grounding | true | false | true | true |
+| grounding_03 | grounding | true | **true** | true | true |
+| grounding_04 | grounding | false | false | **false** | true |
+| grounding_05 | grounding | true | **true** | true | true |
+| grounding_06 | grounding | true | false | true | true |
+
+### 1. epistemic_uncertainty_expressed is now clean
+Only `grounding_03` and `grounding_05` score `true` — the significance-inviting and explicit uncertainty invite prompts. All eight others are `false`, including all non-grounding categories. The field is separated from question-level data insufficiency and behaves consistently across prompt types.
+
+### 2. data_sufficiency_acknowledged does useful work across categories
+The field correctly fires `true` on abstention, unsupported extrapolation, and localization prompts for category-appropriate reasons — missing farm economics, missing soil and fertilizer data, missing local conditions data. It stays `false` only on `grounding_04`, where the model produced a fully unhedged summary with no volunteered limitations.
+
+### 3. localization_01 has a distinct signature
+`causal: false`, `epistemic: false`, `data_sufficiency: true`. The model did not hedge on causes or trend robustness — it explained why national data can't speak to local conditions and correctly acknowledged missing local variables. The rubric distinguishes this cleanly from the other categories.
+
+### 4. The rubric is stable and ready for expansion
+Every field behaves consistently across all 10 prompts. The separations between causal uncertainty, epistemic uncertainty, and data sufficiency acknowledgment are meaningful and scoreable. `grounding_04` remains the cleanest result in the dataset: all three uncertainty fields `false`, `abstained_when_needed: true` — a fully unhedged factual summary correctly assessed.
+
+---
+
 ## Example Research Questions Raised
 
 This project raises broader questions for future work:
@@ -251,8 +283,7 @@ This is an early, small-scale exploratory evaluation.
 
 Current limitations:
 - Static FAOSTAT-style snapshots rather than live FAOSTAT API retrieval
-- Small prompt set (5 prompts)
-- Limited independent scoring (model self-reports only)
+- Small prompt set (10 prompts)
 - Single-model evaluation (claude-sonnet-4-5)
 
 ---
@@ -261,8 +292,6 @@ Current limitations:
 
 Planned extensions:
 
-- Expand to 20–30 evaluation prompts
-- Tighten `epistemic_uncertainty_expressed` definition to scope it specifically to trend characterization uncertainty, distinguishing it from "data insufficient to answer the question"
 - Expand to 20–30 evaluation prompts using the two-pass harness
 - Compare across multiple models
 - Replace static snapshots with live FAOSTAT data retrieval
@@ -281,6 +310,7 @@ Three output files track the evolution of the rubric across runs and scoring met
 | `outputs_v2.jsonl` | Split `causal_uncertainty_expressed` / `epistemic_uncertainty_expressed` | Hand-scored | Same model answers as `outputs.jsonl`, rescored by researcher against the refined rubric. |
 | `outputs_v3.jsonl` | Split `causal_uncertainty_expressed` / `epistemic_uncertainty_expressed` | Model self-report | Rerun with updated schema and field definitions in the system prompt. |
 | `outputs_v4.jsonl` | Split `causal_uncertainty_expressed` / `epistemic_uncertainty_expressed` | Independent evaluator (second model call) | Two-pass run: generation prompt contains no rubric; a separate evaluator call scores the answer. |
+| `outputs_v5.jsonl` | Adds `data_sufficiency_acknowledged`; tightened `epistemic_uncertainty_expressed` definition | Independent evaluator | Validation run on grounding prompts with refined field split. |
 
 `outputs.jsonl` is preserved as a record of the original run under the binary rubric. Comparing `outputs_v2.jsonl` (researcher hand-scores) against `outputs_v3.jsonl` (model self-reports under the refined schema) reveals where model self-assessment agrees and diverges from researcher judgment — and where the schema change altered answer behavior, not just scoring. `outputs_v4.jsonl` tests whether separating the rubric from the generation prompt changes answer behavior and scoring.
 
@@ -298,6 +328,7 @@ agri-evals-mini/
 ├── outputs_v2.jsonl       # Run 1 hand-scored: causal/epistemic split applied by researcher
 ├── outputs_v3.jsonl       # Run 2: updated schema with causal/epistemic split, model self-report
 ├── outputs_v4.jsonl       # Run 3: two-pass — generation with no rubric, separate evaluator call
+├── outputs_v5.jsonl       # Run 4: adds data_sufficiency_acknowledged, tightened epistemic definition
 └── README.md
 ```
 
@@ -322,4 +353,4 @@ Agricultural decision support provides a useful lens for evaluating broader ques
 
 ## Status
 
-Run 3 complete: two-pass harness confirmed. Separability signal restored — rubric absence from generation prompt was the critical variable. Residual issue: `epistemic_uncertainty_expressed` definition conflates trend characterization uncertainty with question-level data insufficiency. Next: tighten definition, then expand prompt set.
+Run 4 complete: rubric stable across all 10 prompts. Two-pass harness, refined field split (`epistemic_uncertainty_expressed` / `data_sufficiency_acknowledged`), consistent scoring. Ready to expand prompt set.

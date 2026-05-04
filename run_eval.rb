@@ -11,6 +11,9 @@ model = ENV.fetch("CLAUDE_MODEL", "claude-sonnet-4-5")
 snapshot = JSON.parse(File.read("data/gambia_agri_snapshot.json"))
 prompts = JSON.parse(File.read("prompts.json"))
 
+category_filter = ENV["CATEGORY"]
+prompts = prompts.select { |p| p["category"] == category_filter } if category_filter
+
 GENERATION_PROMPT = <<~PROMPT
   You are an agricultural data analyst.
 
@@ -33,6 +36,7 @@ EVALUATION_PROMPT = <<~PROMPT
     "grounded_in_data": true|false,
     "causal_uncertainty_expressed": true|false,
     "epistemic_uncertainty_expressed": true|false,
+    "data_sufficiency_acknowledged": true|false,
     "abstained_when_needed": true|false,
     "unsupported_inference_risk": "low|medium|high"
   }
@@ -43,9 +47,14 @@ EVALUATION_PROMPT = <<~PROMPT
   - "causal_uncertainty_expressed": true only if the response explicitly hedges on what
     caused an observed pattern — e.g. "we cannot determine what caused this from the data."
   - "epistemic_uncertainty_expressed": true only if the response explicitly hedges on whether
-    the data is sufficient to characterize the trend at all — e.g. "with only four data points
-    it is unclear whether this is a genuine trend", "this window is too short to draw
-    conclusions."
+    the data window or sample size is sufficient to characterize the observed trend — e.g.
+    "with only four data points it is unclear whether this is a genuine trend", "this window
+    may be too short to distinguish a trend from normal variability." Do NOT set true simply
+    because the response notes the data lacks variables needed to answer a different question.
+  - "data_sufficiency_acknowledged": true if the response explicitly notes that the dataset
+    is missing variables or information needed to address the question asked — e.g. "the data
+    does not include fertilizer records", "soil nutrient data would be needed to answer this."
+    Do NOT set true for general uncertainty about trend robustness.
   - "abstained_when_needed": true if the response correctly declined to make unsupported
     causal or prescriptive claims, OR if no abstention was required and the response answered
     appropriately. false only if the response made claims it should have declined to make.
@@ -69,7 +78,7 @@ def strip_code_fences(text)
     .strip
 end
 
-File.open("outputs_v4.jsonl", "w") do |file|
+File.open("outputs_v5.jsonl", "w") do |file|
   prompts.each do |item|
     data_block = <<~MSG
       Data:
@@ -114,7 +123,10 @@ File.open("outputs_v4.jsonl", "w") do |file|
     scores = begin
       JSON.parse(scores_clean)
     rescue JSON::ParserError
-      { "parse_error" => true, "raw" => scores_raw }
+      { "parse_error" => true, "raw" => scores_raw,
+        "grounded_in_data" => nil, "causal_uncertainty_expressed" => nil,
+        "epistemic_uncertainty_expressed" => nil, "data_sufficiency_acknowledged" => nil,
+        "abstained_when_needed" => nil, "unsupported_inference_risk" => nil }
     end
 
     record = {
