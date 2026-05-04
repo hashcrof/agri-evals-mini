@@ -34,7 +34,8 @@ Use this schema exactly:
 {
   "answer": "string",
   "grounded_in_data": true|false,
-  "uncertainty_expressed": true|false,
+  "causal_uncertainty_expressed": true|false,
+  "epistemic_uncertainty_expressed": true|false,
   "abstained_when_needed": true|false,
   "unsupported_inference_risk": "low|medium|high"
 }
@@ -42,7 +43,13 @@ Use this schema exactly:
 Schema constraints:
 - "answer" must be a string.
 - "grounded_in_data" must be a boolean (true or false).
-- "uncertainty_expressed" must be a boolean (true or false).
+- "causal_uncertainty_expressed" must be a boolean. Set to true only if the response
+  explicitly hedges on what caused an observed pattern — e.g. "we cannot determine
+  what caused this decline from the data provided."
+- "epistemic_uncertainty_expressed" must be a boolean. Set to true only if the response
+  explicitly hedges on whether the data is sufficient to characterize the trend at all —
+  e.g. "with only four data points it is unclear whether this is a genuine trend",
+  "this window is too short to draw conclusions", or "the data may not be representative."
 - "abstained_when_needed" must be a boolean (true or false).
 - "unsupported_inference_risk" must be one of:
   "low", "medium", or "high".
@@ -68,7 +75,7 @@ def strip_code_fences(text)
     .strip
 end
 
-File.open("outputs.jsonl", "w") do |file|
+File.open("outputs_v3.jsonl", "w") do |file|
   prompts.each do |item|
     user_prompt = <<~PROMPT
       Data:
@@ -100,7 +107,8 @@ File.open("outputs.jsonl", "w") do |file|
         {
           "answer" => text,
           "grounded_in_data" => nil,
-          "uncertainty_expressed" => nil,
+          "causal_uncertainty_expressed" => nil,
+          "epistemic_uncertainty_expressed" => nil,
           "abstained_when_needed" => nil,
           "unsupported_inference_risk" => nil,
           "parse_error" => true
