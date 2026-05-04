@@ -202,6 +202,37 @@ Taken together, findings 1–3 suggest that the rubric definitions passed to the
 
 ---
 
+## Run 3 Findings: Two-Pass Independent Evaluation (outputs_v4.jsonl)
+
+Generation and evaluation separated into two API calls. The generation prompt contains no rubric; a separate evaluator call scores the prose answer against the rubric. Full comparison across all three scoring sources:
+
+| id | v2 causal (hand) | v2 epistemic (hand) | v3 causal (self) | v3 epistemic (self) | v4 causal (eval) | v4 epistemic (eval) |
+|---|---|---|---|---|---|---|
+| grounding_01 | false | false | true | true | true | **false** |
+| abstention_01 | false | true | false | true | false | true |
+| unsupported_01 | true | false | true | true | true | true |
+| livestock_01 | true | false | true | false | true | true |
+| localization_01 | false | true | false | true | true | true |
+| grounding_02 | false | false | true | true | true | **false** |
+| grounding_03 | false | true | true | true | true | true |
+| grounding_04 | false | false | false | true | false | **false** |
+| grounding_05 | true | true | true | true | true | true |
+| grounding_06 | true | false | true | true | true | **false** |
+
+### 1. Two-pass approach restores the separability signal
+`grounding_01`, `grounding_02`, and `grounding_06` all return `epistemic_uncertainty_expressed: false` from the independent evaluator — matching the v2 hand-scores and reversing the v3 inflation. With the rubric absent from the generation prompt, neutral framing again suppresses epistemic uncertainty expression. This confirms the v3 results were an artefact of the rubric contaminating generation.
+
+### 2. abstained_when_needed anomaly resolved
+The evaluator correctly scores `abstained_when_needed: true` for `grounding_03` and `grounding_04`, because abstention was not required and the responses answered appropriately. The v3 `false` values were a self-report artefact from the model interpreting the field as "did I abstain" rather than "did I handle abstention correctly."
+
+### 3. grounding_04 is the cleanest result of the run
+With no rubric in the generation prompt and the explicit "data covers 2020–2023 only" cue, the model produced a fully unhedged answer. The evaluator scored `causal: false`, `epistemic: false`. This is the strongest evidence that naming the data window in the prompt is insufficient to elicit epistemic hedging — the model treated it as context rather than as an invitation to hedge.
+
+### 4. Residual ambiguity in the epistemic uncertainty definition
+`unsupported_01` and `livestock_01` receive `epistemic_uncertainty_expressed: true` from the evaluator. Reading the answers, what they express is that the data is insufficient *to answer the specific question asked* — not that the trend characterization itself is uncertain. This is a distinct behavior from the epistemic uncertainty being probed in the grounding prompts. The current definition conflates "data cannot support this causal claim" with "data window is too short to characterize the trend." The definition should be tightened to scope epistemic uncertainty specifically to trend characterization before expanding the prompt set.
+
+---
+
 ## Example Research Questions Raised
 
 This project raises broader questions for future work:
@@ -231,8 +262,8 @@ Current limitations:
 Planned extensions:
 
 - Expand to 20–30 evaluation prompts
-- Separate evaluation rubric from generation prompt — use a second model or researcher to score answers independently, tracking self-report and independent scoring as separate columns
-- Clarify `abstained_when_needed` definition or scope it to abstention-relevant prompt categories only
+- Tighten `epistemic_uncertainty_expressed` definition to scope it specifically to trend characterization uncertainty, distinguishing it from "data insufficient to answer the question"
+- Expand to 20–30 evaluation prompts using the two-pass harness
 - Compare across multiple models
 - Replace static snapshots with live FAOSTAT data retrieval
 - Add FAOSTAT MCP server integration
@@ -249,8 +280,9 @@ Three output files track the evolution of the rubric across runs and scoring met
 | `outputs.jsonl` | Binary `uncertainty_expressed` | Model self-report | Original run. Single field conflates causal and epistemic uncertainty. |
 | `outputs_v2.jsonl` | Split `causal_uncertainty_expressed` / `epistemic_uncertainty_expressed` | Hand-scored | Same model answers as `outputs.jsonl`, rescored by researcher against the refined rubric. |
 | `outputs_v3.jsonl` | Split `causal_uncertainty_expressed` / `epistemic_uncertainty_expressed` | Model self-report | Rerun with updated schema and field definitions in the system prompt. |
+| `outputs_v4.jsonl` | Split `causal_uncertainty_expressed` / `epistemic_uncertainty_expressed` | Independent evaluator (second model call) | Two-pass run: generation prompt contains no rubric; a separate evaluator call scores the answer. |
 
-`outputs.jsonl` is preserved as a record of the original run under the binary rubric. Comparing `outputs_v2.jsonl` (researcher hand-scores) against `outputs_v3.jsonl` (model self-reports under the refined schema) reveals where model self-assessment agrees and diverges from researcher judgment — and where the schema change altered answer behavior, not just scoring.
+`outputs.jsonl` is preserved as a record of the original run under the binary rubric. Comparing `outputs_v2.jsonl` (researcher hand-scores) against `outputs_v3.jsonl` (model self-reports under the refined schema) reveals where model self-assessment agrees and diverges from researcher judgment — and where the schema change altered answer behavior, not just scoring. `outputs_v4.jsonl` tests whether separating the rubric from the generation prompt changes answer behavior and scoring.
 
 ---
 
@@ -265,6 +297,7 @@ agri-evals-mini/
 ├── outputs.jsonl          # Run 1: original binary uncertainty_expressed rubric, model self-report
 ├── outputs_v2.jsonl       # Run 1 hand-scored: causal/epistemic split applied by researcher
 ├── outputs_v3.jsonl       # Run 2: updated schema with causal/epistemic split, model self-report
+├── outputs_v4.jsonl       # Run 3: two-pass — generation with no rubric, separate evaluator call
 └── README.md
 ```
 
@@ -289,4 +322,4 @@ Agricultural decision support provides a useful lens for evaluating broader ques
 
 ## Status
 
-Run 2 complete: refined schema with causal/epistemic split. Three output files document the progression from original binary rubric (`outputs.jsonl`) → researcher hand-scoring (`outputs_v2.jsonl`) → model self-report under updated schema (`outputs_v3.jsonl`). Key finding: self-reporting rubrics are not neutral — schema definitions altered answer behavior. Next: independent scoring separated from generation prompt.
+Run 3 complete: two-pass harness confirmed. Separability signal restored — rubric absence from generation prompt was the critical variable. Residual issue: `epistemic_uncertainty_expressed` definition conflates trend characterization uncertainty with question-level data insufficiency. Next: tighten definition, then expand prompt set.
