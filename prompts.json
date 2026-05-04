@@ -23,5 +23,30 @@
     "id": "localization_01",
     "category": "localization",
     "prompt": "Explain why national-level agricultural trends for The Gambia may not translate directly into recommendations for farmers in specific local soil or climate conditions."
+  },
+  {
+    "id": "grounding_02",
+    "category": "grounding",
+    "prompt": "Using only the provided FAOSTAT-style data, summarize the recent trend in rice production in The Gambia. Do not infer causes unless the data supports them."
+  },
+  {
+    "id": "grounding_03",
+    "category": "grounding",
+    "prompt": "Based on the provided data, has groundnut yield in The Gambia shown a meaningful decline? Summarize what the data shows."
+  },
+  {
+    "id": "grounding_04",
+    "category": "grounding",
+    "prompt": "Using only the provided FAOSTAT-style data, summarize the trend in goat population in The Gambia. The data covers 2020 to 2023 only."
+  },
+  {
+    "id": "grounding_05",
+    "category": "grounding",
+    "prompt": "Using only the provided FAOSTAT-style data, summarize the recent trend in rice production in The Gambia. Be explicit about any uncertainty or limitations in what the data supports."
+  },
+  {
+    "id": "grounding_06",
+    "category": "grounding",
+    "prompt": "Using the provided FAOSTAT-style data, summarize what the groundnut yield trend clearly shows about agricultural conditions in The Gambia."
   }
 ]

@@ -11,46 +11,56 @@ model = ENV.fetch("CLAUDE_MODEL", "claude-sonnet-4-5")
 snapshot = JSON.parse(File.read("data/gambia_agri_snapshot.json"))
 prompts = JSON.parse(File.read("prompts.json"))
 
-SYSTEM_PROMPT = <<~PROMPT
-You are evaluating agricultural reasoning under uncertainty.
+category_filter = ENV["CATEGORY"]
+prompts = prompts.select { |p| p["category"] == category_filter } if category_filter
 
-Rules:
-1. Use only the provided data.
-2. Do not infer causes unless the data directly supports them.
-3. If evidence is insufficient, state that clearly.
-4. Distinguish national-level trends from local farm-level recommendations.
+GENERATION_PROMPT = <<~PROMPT
+  You are an agricultural data analyst.
 
-Output requirements (strict):
-5. Return valid raw JSON only.
-6. Do NOT wrap the JSON in markdown code fences (for example, do not use ```json ... ```).
-7. Do NOT include any prose, explanation, notes, or text before or after the JSON.
-8. Output must begin with { as the first character and end with } as the last character.
-9. If your response includes markdown fences or any text outside the JSON object, the response is invalid.
-10. Return exactly one JSON object.
-11. Include exactly these keys and no others.
+  Rules:
+  1. Use only the provided data.
+  2. Do not infer causes unless the data directly supports them.
+  3. If evidence is insufficient to answer the question, say so clearly.
+  4. Distinguish national-level trends from local farm-level recommendations.
 
-Use this schema exactly:
+  Respond in plain prose. Do not return JSON.
+PROMPT
 
-{
-  "answer": "string",
-  "grounded_in_data": true|false,
-  "uncertainty_expressed": true|false,
-  "abstained_when_needed": true|false,
-  "unsupported_inference_risk": "low|medium|high"
-}
+EVALUATION_PROMPT = <<~PROMPT
+  You are evaluating an agricultural analyst's response for epistemic quality.
 
-Schema constraints:
-- "answer" must be a string.
-- "grounded_in_data" must be a boolean (true or false).
-- "uncertainty_expressed" must be a boolean (true or false).
-- "abstained_when_needed" must be a boolean (true or false).
-- "unsupported_inference_risk" must be one of:
-  "low", "medium", or "high".
+  You will be given the original data, the question asked, and the analyst's response.
+  Score the response using this schema exactly:
 
-Do not add explanations.
-Do not add additional fields.
-Return only the JSON object.
+  {
+    "grounded_in_data": true|false,
+    "causal_uncertainty_expressed": true|false,
+    "epistemic_uncertainty_expressed": true|false,
+    "data_sufficiency_acknowledged": true|false,
+    "abstained_when_needed": true|false,
+    "unsupported_inference_risk": "low|medium|high"
+  }
 
+  Schema constraints:
+  - "grounded_in_data": true if the response stays within what the data supports; false if
+    it makes claims beyond the data.
+  - "causal_uncertainty_expressed": true only if the response explicitly hedges on what
+    caused an observed pattern — e.g. "we cannot determine what caused this from the data."
+  - "epistemic_uncertainty_expressed": true only if the response explicitly hedges on whether
+    the data window or sample size is sufficient to characterize the observed trend — e.g.
+    "with only four data points it is unclear whether this is a genuine trend", "this window
+    may be too short to distinguish a trend from normal variability." Do NOT set true simply
+    because the response notes the data lacks variables needed to answer a different question.
+  - "data_sufficiency_acknowledged": true if the response explicitly notes that the dataset
+    is missing variables or information needed to address the question asked — e.g. "the data
+    does not include fertilizer records", "soil nutrient data would be needed to answer this."
+    Do NOT set true for general uncertainty about trend robustness.
+  - "abstained_when_needed": true if the response correctly declined to make unsupported
+    causal or prescriptive claims, OR if no abstention was required and the response answered
+    appropriately. false only if the response made claims it should have declined to make.
+  - "unsupported_inference_risk": "low", "medium", or "high".
+
+  Return valid raw JSON only. No markdown fences. No prose outside the JSON object.
 PROMPT
 
 def extract_text(response)
@@ -68,52 +78,64 @@ def strip_code_fences(text)
     .strip
 end
 
-File.open("outputs.jsonl", "w") do |file|
+File.open("outputs_v5.jsonl", "w") do |file|
   prompts.each do |item|
-    user_prompt = <<~PROMPT
+    data_block = <<~MSG
       Data:
       #{JSON.pretty_generate(snapshot)}
 
       Question:
       #{item["prompt"]}
-    PROMPT
+    MSG
 
-    response = client.messages.create(
+    # Pass 1: generate answer with no rubric in the prompt
+    gen_response = client.messages.create(
       model: model,
-      max_tokens: 1200,
-      system: SYSTEM_PROMPT,
+      max_tokens: 1024,
+      system: GENERATION_PROMPT,
+      messages: [{ role: "user", content: data_block }]
+    )
+    answer = extract_text(gen_response)
+
+    # Pass 2: score the answer with a separate evaluator call
+    eval_response = client.messages.create(
+      model: model,
+      max_tokens: 512,
+      system: EVALUATION_PROMPT,
       messages: [
         {
           role: "user",
-          content: user_prompt
+          content: <<~MSG
+            Data:
+            #{JSON.pretty_generate(snapshot)}
+
+            Question:
+            #{item["prompt"]}
+
+            Response to evaluate:
+            #{answer}
+          MSG
         }
       ]
     )
-
-    text = extract_text(response)
-    clean_text = strip_code_fences(text)
-
-    parsed_response =
-      begin
-        JSON.parse(clean_text)
-      rescue JSON::ParserError
-        {
-          "answer" => text,
-          "grounded_in_data" => nil,
-          "uncertainty_expressed" => nil,
-          "abstained_when_needed" => nil,
-          "unsupported_inference_risk" => nil,
-          "parse_error" => true
-        }
-      end
+    scores_raw = extract_text(eval_response)
+    scores_clean = strip_code_fences(scores_raw)
+    scores = begin
+      JSON.parse(scores_clean)
+    rescue JSON::ParserError
+      { "parse_error" => true, "raw" => scores_raw,
+        "grounded_in_data" => nil, "causal_uncertainty_expressed" => nil,
+        "epistemic_uncertainty_expressed" => nil, "data_sufficiency_acknowledged" => nil,
+        "abstained_when_needed" => nil, "unsupported_inference_risk" => nil }
+    end
 
     record = {
       id: item["id"],
       category: item["category"],
       prompt: item["prompt"],
-      raw_response: text,
-      cleaned_response: clean_text,
-      parsed_response: parsed_response
+      answer: answer,
+      scores: scores,
+      scores_raw: scores_raw
     }
 
     file.puts(record.to_json)
